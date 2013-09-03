@@ -1,6 +1,7 @@
 #include <boost/program_options.hpp>
 #include <iostream>
-#include "Shapes.h"
+#include <sstream>
+#include "BestFit.h"
 
 namespace po = boost::program_options;
 
@@ -40,31 +41,33 @@ int main(int argc, char *argv[])
 
 	if (numObs > 0)
 		{
-		// instantiate computation object
-		BestFit *b = BestFitFactory::Create(type, numObs);
+		double points[numObs * 2];
+		std::string str;
+		char comma;
 
-		if (b)
+		// next read from stdin x,y coord pairs (comma-delimited)
+		for (int i = 0; i < numObs; i++)
 			{
-			// next read from stdin x,y coord pairs (comma-delimited)
-			std::string str;
-			for (int i = 0; i < numObs; i++)
-				{
-				std::getline(std::cin, str, ',');
-				double x = std::strtod(str.c_str(), NULL);
-				std::getline(std::cin, str);
-				double y = std::strtod(str.c_str(), NULL);
-
-				// add to the computation object
-				b->AddObservation(x, y);
-				}
-
-			// perform quasi-parametric least-squares adjustment
-			b->SetVerbosity(verbosity);
-			b->Compute();
-			delete b;
+			std::getline(std::cin, str);
+			std::stringstream ss(str);
+			ss >> points[i * 2 + 0] >> comma >> points[i * 2 + 1];
 			}
+
+
+		BestFitIO input, output;
+		input.numPoints = numObs;
+		input.points = &points[0];
+		input.verbosity = verbosity;
+		output.points = input.points;
+
+		// instantiate computation object
+		BestFit *b = BestFitFactory::Create(type, std::cout);
+
+		// perform quasi-parametric least-squares adjustment
+		if (b)
+			b->Compute(input, output);
 		else
-			std::cout << "Invalid type, or insufficient observations.\n";
+			std::cout << "Invalid type.\n";
 
 		return 0;
 		}

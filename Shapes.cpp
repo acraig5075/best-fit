@@ -1,4 +1,5 @@
-#include "Shapes.h"
+#include <iomanip>
+#include "BestFit.h"
 
 #define UNKNOWNS_LINE 2 // unknowns for a line are slope, intercept
 #define UNKNOWNS_CIRCLE 3 // unknowns for a circle are centrex, centrey, radius
@@ -11,8 +12,8 @@
 ************************************************************
 ***********************************************************/
 
-BestFitLine::BestFitLine(int observations)
-	: BestFit(observations, UNKNOWNS_LINE)
+BestFitLine::BestFitLine(std::ostream &oStream)
+	: BestFit(UNKNOWNS_LINE, oStream)
 {
 }
 
@@ -51,7 +52,7 @@ double BestFitLine::SolveAt(double x, double y) const
 {
 	double slope = m_provisionals(0, 0);
 	double intercept = m_provisionals(1, 0);
-	return y - ((x * slope) + intercept);
+	return y - (x * slope + intercept);
 }
 
 void BestFitLine::EvaluateFinalResiduals(int point, double &vxi, double &vyi) const
@@ -60,14 +61,21 @@ void BestFitLine::EvaluateFinalResiduals(int point, double &vxi, double &vyi) co
 	vyi = m_residuals(point, 0);
 }
 
+void BestFitLine::OutputAdjustedUnknowns(std::ostream &oStream) const
+{
+	oStream << std::setprecision(6) << std::setiosflags(std::ios::fixed)
+		<< "Adj. line gradient                 " << m_provisionals(0, 0) << std::endl
+		<< "Adj. line Y-intercept              " << m_provisionals(1, 0) << std::endl;
+}
+
 /***********************************************************
 ************************************************************
 **********************  BestFitCircle **********************
 ************************************************************
 ***********************************************************/
 
-BestFitCircle::BestFitCircle(int observations)
-	: BestFit(observations, UNKNOWNS_CIRCLE)
+BestFitCircle::BestFitCircle(std::ostream &oStream)
+	: BestFit(UNKNOWNS_CIRCLE, oStream)
 {
 }
 
@@ -75,7 +83,7 @@ void BestFitCircle::GenerateProvisionals()
 {
 	double centrex = 0.5 * (m_maxx + m_minx);
 	double centrey = 0.5 * (m_maxy + m_miny);
-	double radius = 0.5 * std::max<double>(m_maxx - m_minx, m_maxy - m_miny);
+	double radius =  0.5 * std::max<double>(m_maxx - m_minx, m_maxy - m_miny);
 
 	m_provisionals(0, 0) = centrex;
 	m_provisionals(1, 0) = centrey;
@@ -109,10 +117,16 @@ double BestFitCircle::SolveAt(double x, double y) const
 {
 	double dx = x - m_provisionals(0, 0);
 	double dy = y - m_provisionals(1, 0);
-	//double rsqr = m_provisionals(2,0) * m_provisionals(2,0);
 
-	//return (dx * dx) + (dy * dy) - rsqr;
-	return m_provisionals(2, 0) - hypot(dx, dy);
+	return pow(m_provisionals(2, 0), 2) - pow(dx, 2) - pow(dy, 2);
+}
+
+void BestFitCircle::OutputAdjustedUnknowns(std::ostream &oStream) const
+{
+	oStream << std::setprecision(6) << std::setiosflags(std::ios::fixed)
+		<< "Adj. circle centre X               " << m_provisionals(0, 0) << std::endl
+		<< "Adj. circle centre Y               " << m_provisionals(1, 0) << std::endl
+		<< "Adj. circle radius                 " << m_provisionals(2, 0) << std::endl;
 }
 
 /***********************************************************
@@ -121,8 +135,8 @@ double BestFitCircle::SolveAt(double x, double y) const
 ************************************************************
 ***********************************************************/
 
-BestFitEllipse::BestFitEllipse(int observations)
-	: BestFit(observations, UNKNOWNS_ELLIPSE)
+BestFitEllipse::BestFitEllipse(std::ostream &oStream)
+	: BestFit(UNKNOWNS_ELLIPSE, oStream)
 {
 }
 
@@ -130,8 +144,8 @@ void BestFitEllipse::GenerateProvisionals()
 {
 	double centrex = 0.5 * (m_maxx + m_minx);
 	double centrey = 0.5 * (m_maxy + m_miny);
-	double major = 0.5 * std::max<double>(m_maxx - m_minx, m_maxy - m_miny);
-	double minor = 0.5 * std::min<double>(m_maxx - m_minx, m_maxy - m_miny);
+	double major =   0.5 * std::max<double>(m_maxx - m_minx, m_maxy - m_miny);
+	double minor =   0.5 * std::min<double>(m_maxx - m_minx, m_maxy - m_miny);
 	double rotation = atan((m_maxy - m_miny) / (m_maxx - m_minx));
 
 	m_provisionals(0, 0) = centrex;
@@ -185,10 +199,20 @@ double BestFitEllipse::SolveAt(double x, double y) const
 	double cosr = cos(m_provisionals(4, 0));
 	double dx = x - x0;
 	double dy = y - y0;
-	double d1 = (dx * cosr + dy * sinr);
+	double d1 = ( dx * cosr + dy * sinr);
 	double d2 = (-dx * sinr + dy * cosr);
 
 	return ((d1 * d1) / asqr) + ((d2 * d2) / bsqr) - 1.0;
+}
+
+void BestFitEllipse::OutputAdjustedUnknowns(std::ostream &oStream) const
+{
+	oStream << std::setprecision(6) << std::setiosflags(std::ios::fixed)
+		<< "Adj. ellipse centre X              " << m_provisionals(0, 0) << std::endl
+		<< "Adj. ellipse centre Y              " << m_provisionals(1, 0) << std::endl
+		<< "Adj. ellipse major axis            " << m_provisionals(2, 0) << std::endl
+		<< "Adj. ellipse minor axis            " << m_provisionals(3, 0) << std::endl
+		<< "Adj. ellipse rotation              " << m_provisionals(4, 0) << std::endl;
 }
 
 /***********************************************************
@@ -197,27 +221,14 @@ double BestFitEllipse::SolveAt(double x, double y) const
 ************************************************************
 ***********************************************************/
 
-BestFitFactory::BestFitFactory()
+BestFit *BestFitFactory::Create(int type, std::ostream &oStream)
 {
-}
-
-BestFit *BestFitFactory::Create(int type, int observations)
-{
-	if (observations > 0)
-		{
-		if (0 == type)
-			{
-			return new BestFitLine(observations);
-			}
-		else if (1 == type)
-			{
-			return new BestFitCircle(observations);
-			}
-		else if (2 == type)
-			{
-			return new BestFitEllipse(observations);
-			}
-		}
+	switch (type)
+	{
+		case 0: return new BestFitLine(oStream); break;
+		case 1: return new BestFitCircle(oStream); break;
+		case 2: return new BestFitEllipse(oStream); break;
+	}
 
 	return NULL;
 }
