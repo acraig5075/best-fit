@@ -1,14 +1,28 @@
+#include "BestFit.h"
+
 #include <limits>
 #include <cassert>
 #include <stdexcept>
 #include <iomanip>
-#define BOOST_UBLAS_NDEBUG 1 
 #include <boost/numeric/ublas/lu.hpp>
 #include <boost/numeric/ublas/io.hpp>
-#include "BestFit.h"
 
 #define CONVERGENCE_CRITERIA 0.000000001
 #define MAX_ITERATIONS 50
+
+BestFit::BestFit(int unknowns)
+	: m_verbosity(1)
+	, m_oStream(m_nullStream)
+	, m_solution(unknowns,1)
+	, m_provisionals(unknowns,1)
+	, m_numObs(0)
+	, m_numUnknowns(unknowns)
+	, m_minx(std::numeric_limits<double>::max())
+	, m_maxx(std::numeric_limits<double>::min())
+	, m_miny(std::numeric_limits<double>::max())
+	, m_maxy(std::numeric_limits<double>::min())
+{
+}
 
 BestFit::BestFit(int unknowns, std::ostream &oStream)
 	: m_verbosity(1)
@@ -34,27 +48,37 @@ void BestFit::SetVerbosity(int verbosity)
 	m_verbosity = verbosity;
 }
 
-void BestFit::Compute(BestFitIO &in, BestFitIO &out)
+bool BestFit::Compute(BestFitIO &in, BestFitIO &out)
 {
 	SetVerbosity(in.verbosity);
 
-	if (in.points)
-	{
-		m_numObs = in.numPoints;
-
-		ResizeMatrices();
-
-		for (int i = 0; i < m_numObs; ++i)
+	if (!in.points || in.numPoints == 0)
 		{
-			double x = in.points[i * 2 + 0];
-			double y = in.points[i * 2 + 1];
-			AddObservation(i, x, y);
+		m_oStream << "No solution. No input points." << std::endl;
+		return false;
+		}
+	if (in.numPoints < m_numUnknowns + 1)
+		{
+		m_oStream << "No solution. Too few input points, need " << m_numUnknowns + 1 - in.numPoints << " or more." << std::endl;
+		return false;
 		}
 
-		Compute();
+	m_numObs = in.numPoints;
 
-		FillOutput(out);
+	ResizeMatrices();
+
+	for (int i = 0; i < m_numObs; ++i)
+	{
+		double x = in.points[i * 2 + 0];
+		double y = in.points[i * 2 + 1];
+		AddObservation(i, x, y);
 	}
+
+	Compute();
+
+	FillOutput(out);
+
+	return true;
 }
 
 void BestFit::ResizeMatrices()
@@ -80,14 +104,17 @@ void BestFit::AddObservation(int count, double x, double y)
 }
 
 // Do the least-squares adjustment
-void BestFit::Compute()
+bool BestFit::Compute()
 {
 	if (m_verbosity > 1)
 		m_oStream << "Observations:    " << m_observations << std::endl;
 
 	GenerateProvisionals();
 
+	bool successful = true;
+
 	int iteration = 0;
+
 	while (true)
 		{
 		FormulateMatrices();
@@ -112,11 +139,13 @@ void BestFit::Compute()
 			EvaluateAdjustedUnknowns();
 			}
 		else
+			{
+			successful = false;
 			break;
-
+			}
 		}
 
-	bool successful = (iteration > 0 && iteration < MAX_ITERATIONS);
+	successful = successful && (iteration > 0 && iteration < MAX_ITERATIONS);
 	if (successful)
 		{
 		if (0 == m_verbosity)
@@ -139,6 +168,8 @@ void BestFit::Compute()
 			ErrorAnalysis(iteration);
 			}
 		}
+
+	return successful;
 }
 
 // Matrix inversion routine using LU decomposition
@@ -158,8 +189,15 @@ bool BestFit::InvertMatrix(const ublas::matrix<double> &input, ublas::matrix<dou
 	// create identity matrix of "inverse"
 	inverse.assign(ublas::identity_matrix<double>(A.size1()));
 
-	// back-substitute to get the inverse
-	ublas::lu_substitute(A, pm, inverse);
+	try
+		{
+		// back-substitute to get the inverse
+		ublas::lu_substitute(A, pm, inverse);
+		}
+	catch (std::logic_error &)
+		{
+		return false;
+		}
 
 	return true;
 }

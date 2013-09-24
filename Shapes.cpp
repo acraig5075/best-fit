@@ -1,9 +1,6 @@
-#include <iomanip>
 #include "BestFit.h"
 
-#define UNKNOWNS_LINE 2 // unknowns for a line are slope, intercept
-#define UNKNOWNS_CIRCLE 3 // unknowns for a circle are centrex, centrey, radius
-#define UNKNOWNS_ELLIPSE 5 // unknowns for an ellipse are centrex, centrey, major, minor, rotation
+#include <iomanip>
 
 
 /***********************************************************
@@ -12,8 +9,15 @@
 ************************************************************
 ***********************************************************/
 
+const int BestFitLine::kLineUnknowns = 2; // unknowns for a line are slope, intercept
+
+BestFitLine::BestFitLine()
+	: BestFit(kLineUnknowns)
+{
+}
+
 BestFitLine::BestFitLine(std::ostream &oStream)
-	: BestFit(UNKNOWNS_LINE, oStream)
+	: BestFit(kLineUnknowns, oStream)
 {
 }
 
@@ -74,8 +78,15 @@ void BestFitLine::OutputAdjustedUnknowns(std::ostream &oStream) const
 ************************************************************
 ***********************************************************/
 
+const int BestFitCircle::kCircleUnknowns = 3; // unknowns for a circle are centrex, centrey, radius
+
+BestFitCircle::BestFitCircle()
+	: BestFit(kCircleUnknowns)
+{
+}
+
 BestFitCircle::BestFitCircle(std::ostream &oStream)
-	: BestFit(UNKNOWNS_CIRCLE, oStream)
+	: BestFit(kCircleUnknowns, oStream)
 {
 }
 
@@ -117,8 +128,9 @@ double BestFitCircle::SolveAt(double x, double y) const
 {
 	double dx = x - m_provisionals(0, 0);
 	double dy = y - m_provisionals(1, 0);
+	double r = m_provisionals(2, 0);
 
-	return pow(m_provisionals(2, 0), 2) - pow(dx, 2) - pow(dy, 2);
+	return r * r - dx * dx - dy * dy;
 }
 
 void BestFitCircle::OutputAdjustedUnknowns(std::ostream &oStream) const
@@ -135,8 +147,15 @@ void BestFitCircle::OutputAdjustedUnknowns(std::ostream &oStream) const
 ************************************************************
 ***********************************************************/
 
+const int BestFitEllipse::kEllipseUnknowns = 5; // unknowns for an ellipse are centrex, centrey, major, minor, rotation
+
+BestFitEllipse::BestFitEllipse()
+	: BestFit(kEllipseUnknowns)
+{
+}
+
 BestFitEllipse::BestFitEllipse(std::ostream &oStream)
-	: BestFit(UNKNOWNS_ELLIPSE, oStream)
+	: BestFit(kEllipseUnknowns, oStream)
 {
 }
 
@@ -144,9 +163,11 @@ void BestFitEllipse::GenerateProvisionals()
 {
 	double centrex = 0.5 * (m_maxx + m_minx);
 	double centrey = 0.5 * (m_maxy + m_miny);
-	double major =   0.5 * std::max<double>(m_maxx - m_minx, m_maxy - m_miny);
-	double minor =   0.5 * std::min<double>(m_maxx - m_minx, m_maxy - m_miny);
-	double rotation = atan((m_maxy - m_miny) / (m_maxx - m_minx));
+	double dx = m_maxx - m_minx;
+	double dy = m_maxy - m_miny;
+	double major = 0.5 * std::max<double>(dx, dy);
+	double minor = 0.5 * std::min<double>(dx, dy);
+	double rotation = atan(dy / dx);
 
 	m_provisionals(0, 0) = centrex;
 	m_provisionals(1, 0) = centrey;
@@ -210,8 +231,8 @@ void BestFitEllipse::OutputAdjustedUnknowns(std::ostream &oStream) const
 	oStream << std::setprecision(6) << std::setiosflags(std::ios::fixed)
 		<< "Adj. ellipse centre X              " << m_provisionals(0, 0) << std::endl
 		<< "Adj. ellipse centre Y              " << m_provisionals(1, 0) << std::endl
-		<< "Adj. ellipse major axis            " << m_provisionals(2, 0) << std::endl
-		<< "Adj. ellipse minor axis            " << m_provisionals(3, 0) << std::endl
+		<< "Adj. ellipse semi-major axis       " << m_provisionals(2, 0) << std::endl
+		<< "Adj. ellipse semi-minor axis       " << m_provisionals(3, 0) << std::endl
 		<< "Adj. ellipse rotation              " << m_provisionals(4, 0) << std::endl;
 }
 
@@ -220,6 +241,18 @@ void BestFitEllipse::OutputAdjustedUnknowns(std::ostream &oStream) const
 **********************  BestFitFactory *********************
 ************************************************************
 ***********************************************************/
+
+BestFit *BestFitFactory::Create(int type)
+	{
+	switch (type)
+	{
+		case 0: return new BestFitLine(); break;
+		case 1: return new BestFitCircle(); break;
+		case 2: return new BestFitEllipse(); break;
+	}
+
+	return NULL;
+	}
 
 BestFit *BestFitFactory::Create(int type, std::ostream &oStream)
 {

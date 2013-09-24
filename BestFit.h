@@ -1,10 +1,10 @@
 #pragma once
+#pragma warning( disable : 4355 )
 
-#include <boost/numeric/ublas/banded.hpp>
 #include <iostream>
+#include <boost/numeric/ublas/banded.hpp>
 
 namespace ublas = boost::numeric::ublas;
-
 
 /***********************************************************
 ************************************************************
@@ -40,6 +40,30 @@ struct BestFitIO
 
 /***********************************************************
 ************************************************************
+**********************  NullStream *************************
+************************************************************
+***********************************************************/
+
+class NullStreamBuf : public std::streambuf
+{
+	char buffer[64];
+protected:
+	virtual int overflow(int c) 
+	{
+		setp(buffer, buffer + sizeof(buffer));
+		return (c == traits_type::eof()) ? '\0' : c;
+	}
+};
+
+class NullStream : private NullStreamBuf, public std::ostream
+{
+	public:
+		NullStream() : std::ostream(this) {}
+};
+
+
+/***********************************************************
+************************************************************
 **********************  BestFit ****************************
 ************************************************************
 ***********************************************************/
@@ -48,6 +72,7 @@ class BestFit
 {
 	// Construction
 public:
+	BestFit(int unknowns);
 	BestFit(int unknowns, std::ostream &oStream);
 	virtual ~BestFit();
 private:
@@ -60,7 +85,7 @@ protected:
 
 	// Implementation
 public:
-	void Compute(BestFitIO &in, BestFitIO &out);
+	bool Compute(BestFitIO &in, BestFitIO &out);
 	virtual double SolveAt(double x, double y) const = 0;
 
 private:
@@ -70,7 +95,7 @@ private:
 	virtual void OutputAdjustedUnknowns(std::ostream &oStream) const = 0;
 
 	void SetVerbosity(int verbosity);
-	void Compute();
+	bool Compute();
 	void ResizeMatrices();
 	void AddObservation(int count, double x, double y);
 	bool HasConverged() const;
@@ -90,6 +115,7 @@ protected:
 public:
 private:
 	int m_verbosity;
+	NullStream m_nullStream;
 	std::ostream &m_oStream;
 	ublas::matrix<double> m_solution;
 protected:
@@ -118,6 +144,8 @@ protected:
 class BestFitLine : public BestFit
 {
 public:
+	static const int kLineUnknowns;
+	BestFitLine();
 	BestFitLine(std::ostream &oStream);
 
 private:
@@ -137,6 +165,8 @@ private:
 class BestFitCircle : public BestFit
 {
 public:
+	static const int kCircleUnknowns;
+	BestFitCircle();
 	BestFitCircle(std::ostream &oStream);
 
 private:
@@ -155,6 +185,8 @@ private:
 class BestFitEllipse : public BestFit
 {
 public:
+	static const int kEllipseUnknowns;
+	BestFitEllipse();
 	BestFitEllipse(std::ostream &oStream);
 
 private:
@@ -172,6 +204,7 @@ private:
 
 struct BestFitFactory
 {
+	static BestFit *Create(int type);
 	static BestFit *Create(int type, std::ostream &oStream);
 };
 

@@ -1,7 +1,10 @@
+#include "BestFit.h"
+
+#if !defined BEST_FIT_LIB
+
 #include <boost/program_options.hpp>
 #include <iostream>
 #include <sstream>
-#include "BestFit.h"
 
 namespace po = boost::program_options;
 
@@ -74,3 +77,5 @@ int main(int argc, char *argv[])
 
 	return 1;
 }
+
+#endif

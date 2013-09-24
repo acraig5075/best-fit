@@ -1,5 +1,6 @@
-#include <complex>
 #include "BestFit.h"
+
+#include <complex>
 
 const double Double::Accuracy = 0.000000001;
 	
