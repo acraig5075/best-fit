@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
 
 	if (numObs > 0)
 		{
-		double points[numObs * 2];
+		double *points = new double[numObs * 2];
 		std::string str;
 		char comma;
 
@@ -71,6 +71,8 @@ int main(int argc, char *argv[])
 			b->Compute(input, output);
 		else
 			std::cout << "Invalid type.\n";
+
+		delete [] points;
 
 		return 0;
 		}
