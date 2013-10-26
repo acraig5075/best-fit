@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
 
 	if (1 == argc || vm.count("help") || 0 == vm.count("type"))
 		{
-		std::cout << "Usage: best-fit [options]" << std::endl;
+		std::cout << "Usage: best-fit [options] NUM_POINTS X,Y ..." << std::endl;
 		std::cout << desc << std::endl;
 		return 1;
 		}
@@ -36,26 +36,34 @@ int main(int argc, char *argv[])
 	if (vm.count("verbose"))
 		verbosity = vm["verbose"].as<int>();
 
+	std::string str;
+	std::stringstream ss(str);
+
 	// first read the number of observations to follow
 	int numObs = 0;
-	std::cin >> numObs;
+	std::getline(std::cin, str);
+	ss.str(str);
+	ss >> numObs;
+	ss.clear();
+	ss.str("");
+
 	std::cin.precision(12);
 	std::cout.precision(12);
 
 	if (numObs > 0)
 		{
-		double points[numObs * 2];
-		std::string str;
+		double *points = new double[numObs * 2];
 		char comma;
 
 		// next read from stdin x,y coord pairs (comma-delimited)
 		for (int i = 0; i < numObs; i++)
 			{
 			std::getline(std::cin, str);
-			std::stringstream ss(str);
+			ss.str(str);
 			ss >> points[i * 2 + 0] >> comma >> points[i * 2 + 1];
+			ss.clear();
+			ss.str("");
 			}
-
 
 		BestFitIO input, output;
 		input.numPoints = numObs;
@@ -71,6 +79,8 @@ int main(int argc, char *argv[])
 			b->Compute(input, output);
 		else
 			std::cout << "Invalid type.\n";
+
+		delete [] points;
 
 		return 0;
 		}

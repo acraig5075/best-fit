@@ -1,6 +1,23 @@
 best-fit
 Alasdair Craig
 
-Build using the Makefile.
-Documentation at acraig.za.net/src/best-fit.html
+Dependencies
+============
 
+Boost must be preinstalled as best-fit depends on Boost for the following:
+
+1. boost::ublas for the matrix operations;
+2. boost::program_options for parsing the command line options when building without BEST_FIT_LIB #defined (ie. building an .exe not a .lib)
+
+
+Build instructions
+==================
+
+
+#define BEST_FIT_LIB in main.cpp to build a static library. Alternatively omit to build an executable. 
+
+Linux: Build using the Makefile.
+Windows: Visual Studio 2008 .sln and .vcproj is provided.
+
+
+Documentation at http://acraig.za.net/src/best-fit.html

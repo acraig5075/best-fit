@@ -78,11 +78,6 @@ public:
 private:
 protected:
 
-	// Operators
-public:
-private:
-protected:
-
 	// Implementation
 public:
 	bool Compute(BestFitIO &in, BestFitIO &out);
@@ -206,6 +201,8 @@ struct BestFitFactory
 {
 	static BestFit *Create(int type);
 	static BestFit *Create(int type, std::ostream &oStream);
+
+	enum { Line, Circle, Ellipse };
 };
 
 /***********************************************************
