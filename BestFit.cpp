@@ -148,25 +148,21 @@ bool BestFit::Compute()
 	successful = successful && (iteration > 0 && iteration < MAX_ITERATIONS);
 	if (successful)
 		{
+		// evaluate the residuals
+		EvaluateResiduals();
+
+		// add the residuals to the provisional observations
+		EvaluateAdjustedObservations();
+
+		// Check that the adjusted unknowns and adjusted observations satisfy
+		// the original line/circle/ellipse equation.
+		GlobalCheck();
+
+		// Subsequent error analysis and statistical output
+		ErrorAnalysis(iteration);
+
 		if (0 == m_verbosity)
-			{
 			OutputSimpleSolution();
-			}
-		else
-			{
-			// evaluate the residuals
-			EvaluateResiduals();
-
-			// add the residuals to the provisional observations
-			EvaluateAdjustedObservations();
-
-			// Check that the adjusted unknowns and adjusted observations satisfy
-			// the original line/circle/ellipse equation.
-			GlobalCheck();
-
-			// Subsequent error analysis and statistical output
-			ErrorAnalysis(iteration);
-			}
 		}
 
 	return successful;
@@ -280,7 +276,7 @@ void BestFit::EvaluateAdjustedObservations()
 // Global check on the quality of the adjustment
 void BestFit::GlobalCheck()
 {
-	ublas::vector<double> global(m_numObs);
+	ublas::vector<double> global(m_numObs, 0);
 	bool pass = (m_numObs > 0);
 
 	for (int i = 0; i < m_numObs; ++i)
@@ -289,11 +285,7 @@ void BestFit::GlobalCheck()
 		double y = m_observations(i, 1);
 
 		global(i) = SolveAt(x, y); // should be zero
-		if (pass)
-			//pass = Double::IsZero(global(i));
-			pass = fabs(global(i)) < 0.01; // TODO: Is this too lax?
-		else
-			break; // TODO: is this right?
+		pass = pass && fabs(global(i)) < 0.01; // TODO: Is this too lax?
 		}
 
 	if (m_verbosity > 1)
