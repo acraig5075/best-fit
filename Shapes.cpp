@@ -128,9 +128,9 @@ double BestFitCircle::SolveAt(double x, double y) const
 {
 	double dx = x - m_provisionals(0, 0);
 	double dy = y - m_provisionals(1, 0);
-	double r = m_provisionals(2, 0);
+	double rsqr = m_provisionals(2, 0) * m_provisionals(2, 0);
 
-	return r * r - dx * dx - dy * dy;
+	return rsqr - dx * dx - dy * dy;
 }
 
 void BestFitCircle::OutputAdjustedUnknowns(std::ostream &oStream) const

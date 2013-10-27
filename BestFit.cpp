@@ -130,13 +130,13 @@ bool BestFit::Compute()
 			{
 			++iteration;
 
+			// add the solution to the provisional unknowns
+			EvaluateAdjustedUnknowns();
+
 			if (HasConverged())
 				break;
 			if (IsDegenerate(iteration))
 				break;
-
-			// add the unknowns to the provisional values
-			EvaluateAdjustedUnknowns();
 			}
 		else
 			{
@@ -248,12 +248,22 @@ void BestFit::EvaluateFinalResiduals(int point, double &vxi, double &vyi) const
 	vxi = m_design(point, 0) * m_qweight(point, point) * m_residuals(point, 0);
 	vyi = m_design(point, 1) * m_qweight(point, point) * m_residuals(point, 0);
 
-	//	ublas::matrix<double> bt = ublas::trans(m_b);
-	//	ublas::matrix<double> pv = ublas::prod(m_qweight, m_residuals);
-	//	ublas::matrix<double> btpv = ublas::prod(bt, pv);
-	//	vxi = -btpv(point * 2 + 0,0);
-	//	vyi = -btpv(point * 2 + 1,0);
-	//	m_oStream << avxi - vxi << "," << avyi - vyi << std::endl;
+	//// Method 1: ref (2:35)
+	//ublas::matrix<double> bt = ublas::trans(m_b);
+	//ublas::matrix<double> pv = ublas::prod(m_qweight, m_residuals);
+	//ublas::matrix<double> btpv = ublas::prod(bt, pv);
+	//double avxi = -btpv(point * 2 + 0,0);
+	//double avyi = -btpv(point * 2 + 1,0);
+	//m_oStream << "New residuals (Method 1) differ by: " << avxi - vxi << "," << avyi - vyi << std::endl;
+
+	//// Method 2: ref (2:28)
+	//double dx = m_observations(point, 0) - m_provisionals(0, 0);
+	//double dy = m_observations(point, 1) - m_provisionals(1, 0);
+	//double r = m_provisionals(2, 0);
+	//double quasiv = -2.0 * dx * m_solution(0, 0) - 2.0 * dy * m_solution(1, 0) - 2.0 * r * m_solution(2, 0) - m_l(point, 0);
+	//double bvxi = - (quasiv * 2.0 * dx) / (4.0 * (dx * dx + dy * dy));
+	//double bvyi = - (quasiv * 2.0 * dy) / (4.0 * (dx * dx + dy * dy));
+	//m_oStream << "New residuals (Method 2) differ by: " << bvxi - vxi << "," << bvyi - vyi << std::endl;
 }
 
 // Add residuals to initial observations
@@ -293,12 +303,15 @@ void BestFit::GlobalCheck()
 	if (m_verbosity > 0)
 		m_oStream << "Global check of the adjustment     ***" << (pass ? "PASSES***" : "FAILS***") << std::endl;
 
-	// Just for fun let's check that aTPv is zero too, really only neccessary
+	// Secondary test is to check that aTPv is zero too, really only neccessary
 	// if the above global check fails.
 	ublas::matrix<double> atp = ublas::prod(ublas::trans(m_design), m_qweight);
 	ublas::matrix<double> atpv = ublas::prod(atp, m_residuals);
 
-	pass = Double::IsZero(atpv(0,0));
+	pass = true;
+	for (int j = 0; j < m_numUnknowns; ++j)
+		pass = pass && Double::IsZero(atpv(j, 0));
+
 	if (!pass && m_verbosity > 1)
 		m_oStream << "aTPv             " << atpv << std::endl;
 	if (m_verbosity > 0)
