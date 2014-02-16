@@ -1,4 +1,17 @@
+/*****************************************************************************/
+/*                                                                           */
+/* Best-fit                                                                  */
+/*                                                                           */
+/* Copyright 2014                                                            */
+/* Alasdair Craig                                                            */
+/* ac@acraig.za.net                                                          */
+/* License: Code Project Open License 1.02                                   */
+/* http://www.codeproject.com/info/cpol10.aspx                               */
+/*                                                                           */
+/*****************************************************************************/
+
 #include "BestFit.h"
+#include "cholesky.h"
 
 #include <limits>
 #include <cassert>
@@ -17,10 +30,10 @@ BestFit::BestFit(int unknowns)
 	, m_provisionals(unknowns,1)
 	, m_numObs(0)
 	, m_numUnknowns(unknowns)
-	, m_minx(std::numeric_limits<double>::max())
-	, m_maxx(std::numeric_limits<double>::min())
-	, m_miny(std::numeric_limits<double>::max())
-	, m_maxy(std::numeric_limits<double>::min())
+	, m_minx( std::numeric_limits<double>::max())
+	, m_maxx(-std::numeric_limits<double>::max())
+	, m_miny( std::numeric_limits<double>::max())
+	, m_maxy(-std::numeric_limits<double>::max())
 {
 }
 
@@ -31,10 +44,10 @@ BestFit::BestFit(int unknowns, std::ostream &oStream)
 	, m_provisionals(unknowns,1)
 	, m_numObs(0)
 	, m_numUnknowns(unknowns)
-	, m_minx(std::numeric_limits<double>::max())
-	, m_maxx(std::numeric_limits<double>::min())
-	, m_miny(std::numeric_limits<double>::max())
-	, m_maxy(std::numeric_limits<double>::min())
+	, m_minx( std::numeric_limits<double>::max())
+	, m_maxx(-std::numeric_limits<double>::max())
+	, m_miny( std::numeric_limits<double>::max())
+	, m_maxy(-std::numeric_limits<double>::max())
 {
 }
 
@@ -148,6 +161,9 @@ bool BestFit::Compute()
 	successful = successful && (iteration > 0 && iteration < MAX_ITERATIONS);
 	if (successful)
 		{
+		// Give ellipse chance to normalise it's axes. 
+		NormaliseAdjustedUnknowns();
+
 		// evaluate the residuals
 		EvaluateResiduals();
 
@@ -205,6 +221,7 @@ bool BestFit::EvaluateUnknowns()
 	ublas::matrix<double> atpa = ublas::prod(ublas::trans(m_design), pa);
 
 	ublas::matrix<double> inverse(atpa.size1(), atpa.size2());
+	//if (CholeskyInversion(atpa, inverse))
 	if (InvertMatrix(atpa, inverse))
 		{
 		ublas::matrix<double> pl = ublas::prod(m_qweight, m_l);
@@ -397,3 +414,44 @@ void BestFit::FillOutput(BestFitIO &out) const
 			out.residuals[j] = m_residuals(j, 0);
 	}
 }
+
+void BestFit::LowerTriangularModifyInversion(const ublas::matrix<double> &l, ublas::matrix<double> &m)
+{
+	typedef ublas::matrix<double>::size_type INDEX;
+	INDEX i, j, n = l.size1();
+
+	for (i = 0; i < n; ++i)
+		m(i, i) = 1.0 / l(i, i);
+
+	for (j = 0; j < n; ++j)
+	{
+		for (i = j + 1; i < n; ++i)
+		{
+			assert(i > j);
+
+			double sum = 0.0;
+			for (INDEX k = j; k <= i - 1; ++k)
+				sum += l(i, k) * m(k, j);
+
+			m(i, j) = -m(i, i) * sum;
+		}
+	}
+}
+
+bool BestFit::CholeskyInversion(const ublas::matrix<double> &input, ublas::matrix<double> &inverse)
+{
+	ublas::matrix<double> l(input.size1(), input.size2());
+	ublas::matrix<double> m(input.size1(), input.size2(), 0.0);
+
+	if (0 == cholesky_decompose(input, l))
+	{
+		LowerTriangularModifyInversion(l, m);
+
+		inverse = ublas::prod(ublas::trans(m), m);
+
+		return true;
+	}
+
+	return false;
+}
+

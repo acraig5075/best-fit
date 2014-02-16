@@ -1,7 +1,21 @@
+/*****************************************************************************/
+/*                                                                           */
+/* Best-fit                                                                  */
+/*                                                                           */
+/* Copyright 2014                                                            */
+/* Alasdair Craig                                                            */
+/* ac@acraig.za.net                                                          */
+/* License: Code Project Open License 1.02                                   */
+/* http://www.codeproject.com/info/cpol10.aspx                               */
+/*                                                                           */
+/*****************************************************************************/
+
 #include "BestFit.h"
 
 #include <iomanip>
 
+#define HALF_PI 1.57079632679
+#define TWO_PI  6.28318530718
 
 /***********************************************************
 ************************************************************
@@ -234,6 +248,33 @@ void BestFitEllipse::OutputAdjustedUnknowns(std::ostream &oStream) const
 		<< "Adj. ellipse semi-major axis       " << m_provisionals(2, 0) << std::endl
 		<< "Adj. ellipse semi-minor axis       " << m_provisionals(3, 0) << std::endl
 		<< "Adj. ellipse rotation              " << m_provisionals(4, 0) << std::endl;
+}
+
+// Give ellipse chance to normalise major >= minor and 0 <= rotation angle < 2PI.
+void BestFitEllipse::NormaliseAdjustedUnknowns()
+{
+	double theta = std::abs(m_provisionals(4, 0));
+	bool negative = Double::IsLessThanZero(m_provisionals(4, 0));
+
+	while (theta >= TWO_PI)
+		theta -= TWO_PI;
+	if (negative)
+		theta = TWO_PI - theta;
+
+	double major = m_provisionals(2, 0);
+	double minor = m_provisionals(3, 0);
+	if (Double::IsGreaterThan(minor, major))
+	{
+		// swap axes and make angle the perpendicular
+		m_provisionals(2, 0) = minor;
+		m_provisionals(3, 0) = major;
+
+		theta -= HALF_PI;
+		if (Double::IsLessThanZero(theta))
+			theta += TWO_PI;
+	}
+
+	m_provisionals(4, 0) = theta;
 }
 
 /***********************************************************

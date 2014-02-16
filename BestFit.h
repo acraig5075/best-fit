@@ -1,3 +1,15 @@
+/*****************************************************************************/
+/*                                                                           */
+/* Best-fit                                                                  */
+/*                                                                           */
+/* Copyright 2014                                                            */
+/* Alasdair Craig                                                            */
+/* ac@acraig.za.net                                                          */
+/* License: Code Project Open License 1.02                                   */
+/* http://www.codeproject.com/info/cpol10.aspx                               */
+/*                                                                           */
+/*****************************************************************************/
+
 #pragma once
 #pragma warning( disable : 4355 )
 
@@ -88,6 +100,7 @@ private:
 	virtual void FormulateMatrices() = 0;
 	virtual void EvaluateFinalResiduals(int point, double &vxi, double &vyi) const;
 	virtual void OutputAdjustedUnknowns(std::ostream &oStream) const = 0;
+	virtual void NormaliseAdjustedUnknowns() {}
 
 	void SetVerbosity(int verbosity);
 	bool Compute();
@@ -104,6 +117,8 @@ private:
 	void ErrorAnalysis(int iterations);
 	void OutputSimpleSolution() const;
 	void FillOutput(BestFitIO &out) const;
+	void LowerTriangularModifyInversion(const ublas::matrix<double> &l, ublas::matrix<double> &m);
+	bool CholeskyInversion(const ublas::matrix<double> &input, ublas::matrix<double> &inverse);
 protected:
 
 	// Variables
@@ -189,6 +204,7 @@ private:
 	void FormulateMatrices();
 	double SolveAt(double x, double y) const;
 	void OutputAdjustedUnknowns(std::ostream &oStream) const;
+	void NormaliseAdjustedUnknowns();
 };
 
 /***********************************************************

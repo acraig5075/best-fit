@@ -1,3 +1,15 @@
+/*****************************************************************************/
+/*                                                                           */
+/* Best-fit                                                                  */
+/*                                                                           */
+/* Copyright 2014                                                            */
+/* Alasdair Craig                                                            */
+/* ac@acraig.za.net                                                          */
+/* License: Code Project Open License 1.02                                   */
+/* http://www.codeproject.com/info/cpol10.aspx                               */
+/*                                                                           */
+/*****************************************************************************/
+
 #include "BestFit.h"
 
 #include <complex>

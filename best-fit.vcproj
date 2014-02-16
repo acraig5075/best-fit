@@ -175,6 +175,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\cholesky.h"
+				>
+			</File>
+			<File
 				RelativePath=".\targetver.h"
 				>
 			</File>
